@@ -1,0 +1,152 @@
+version: "3"
+services:
+  config-server:
+    container_name: talky-config-server
+    image: anthonyjhoiro/talky_config-server:v1.14.1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002/actuator"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    networks:
+      - talky
+  admin-server:
+    container_name: talky-admin-server
+    image: anthonyjhoiro/talky_admin-server:v1.14.1
+    networks:
+      - talky
+    ports:
+      - "9001:9001"
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:9002
+      SERVER_USEFORWARDHEADERS: 'true'
+    depends_on:
+      config-server:
+        condition: service_healthy
+  gateway:
+    container_name: talky-gateway
+    image: anthonyjhoiro/talky_gateway:v1.14.1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/actuator"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    networks:
+      - talky
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:9002
+    ports:
+      - "8000:8000"
+  user-database:
+    container_name: talky-user-database
+    image: postgres
+    networks:
+      - talky
+    environment:
+      POSTGRES_USER: ${USERS_POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${USERS_POSTGRES_PASSWORD}
+      POSTGRES_DB: talky_users
+  user-service:
+    container_name: talky-user-service
+    image: anthonyjhoiro/talky_user-service:v1.14.1
+    networks:
+      - talky
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/actuator"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:9002
+      SPRING_PROFILES_ACTIVE: postgres
+      POSTGRES_DATABASE: jdbc:postgresql://user-database:5432/talky_users
+      POSTGRES_USERNAME: ${USERS_POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${USERS_POSTGRES_PASSWORD}
+    depends_on:
+      user-database:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+  posts-database:
+    container_name: talky-posts-database
+    image: postgres
+    networks:
+      - talky
+    environment:
+      POSTGRES_USER: ${POSTS_POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTS_POSTGRES_PASSWORD}
+      POSTGRES_DB: talky_posts
+  posts-service:
+    container_name: talky-posts-service
+    image: anthonyjhoiro/talky_post-service:v1.14.1
+    networks:
+      - talky
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/actuator"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:9002
+      SPRING_PROFILES_ACTIVE: postgres
+      POSTGRES_DATABASE: jdbc:postgresql://posts-database:5432/talky_posts
+      POSTGRES_USERNAME: ${POSTS_POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTS_POSTGRES_PASSWORD}
+    depends_on:
+      posts-database:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+  social-database:
+    container_name: talky-social-database
+    image: postgres
+    networks:
+      - talky
+    environment:
+      POSTGRES_USER: ${SOCIAL_POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${SOCIAL_POSTGRES_PASSWORD}
+      POSTGRES_DB: talky_social
+  social-service:
+    container_name: talky-social-service
+    image: anthonyjhoiro/talky_social-service:v1.14.1
+    networks:
+      - talky
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/actuator"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:9002
+      SPRING_PROFILES_ACTIVE: postgres
+      POSTGRES_DATABASE: jdbc:postgresql://social-database:5432/talky_social
+      POSTGRES_USERNAME: ${SOCIAL_POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${SOCIAL_POSTGRES_PASSWORD}
+      FIREBASESERVICEACCOUNT: ${FIREBASESERVICEACCOUNT}
+    depends_on:
+      social-database:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+  assets-service:
+    container_name: talky-asset-service
+    image: anthonyjhoiro/talky_asset-service:v1.14.1
+    networks:
+      - talky
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/actuator"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:9002
+      GCPSTORAGE_BUCKETNAME: ${GCPSTORAGE_BUCKETNAME}
+      SPRING_CLOUD_GCP_CREDENTIALS_ENCODEDKEY: ${SPRING_CLOUD_GCP_CREDENTIALS_ENCODEDKEY}
+    depends_on:
+      config-server:
+        condition: service_healthy
+networks:
+  talky:

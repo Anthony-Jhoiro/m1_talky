@@ -29,6 +29,9 @@ services that needs to consme that API.
 ## Architecture
 ![Architecture](docs/assets/arch.png)
 
+The API is available at `api.talky.jho.ovh`. As it is deployed in my own server, if you encounter any unavailability 
+issue with it, do not hésitate to contact me.  
+
 ## Setup
 ### Dev environment
 In a dev environment, each service must be created with the profile `dev` and each service with a database must be 
@@ -62,6 +65,12 @@ To register a user you need to make a post request to `/users/api/v1/users` (fol
 details).
 
 If you need more accounts, please contact me at *quereantho@gmail.com*. 
+
+
+### Imagge management
+Images or stored i a GCP bucketAll accesses to it are made by using signed links. To upload a new asset, you need to 
+get a link with the corresponding endpoint (in the user service or the post service) and upload your asset as a 
+application/octet-stream ith a "PUT" method. The ID is located in the returned link. 
 
 ### Documentation
 A swagger-ui is available for all endpoints exposed by the api. You can access all of them at 
